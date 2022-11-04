@@ -22,16 +22,16 @@ dict = {
     }
 
 sns = pd.read_parquet(r'C:\Users\Brendan\Documents\Programming\Python Testing\robodata\source\parquet\seasons.parquet',engine='pyarrow')
-data = pd.read_parquet(r'C:\Users\Brendan\Documents\Programming\Python Testing\robodata\source\parquet\TossUp.parquet',engine='pyarrow')
+data = pd.read_parquet(r'C:\Users\Brendan\Documents\Programming\Python Testing\robodata\source\parquet\TurningPoint.parquet',engine='pyarrow')
 data.dropna(0,subset=['red1','red2','region','blue1','blue2'],inplace=True)
 data = data.sort_values('region')
-fig = px.scatter(data, x="redscore", y="bluescore", marginal_x="violin", marginal_y="violin", color="region", title= "Toss Up", hover_data=['red1','red2','blue1','blue2'],render_mode="webgl")
-fig.show()
-#fig.write_html(r'C:\Users\Brendan\Documents\Programming\Python Testing\robodata\source\svg.html',default_width='100%',default_height='100%')
+fig = px.scatter(data, x="redscore", y="bluescore", marginal_x="violin", marginal_y="violin", color="region", title= "Turning Point", hover_data=['sku','red1','red2','blue1','blue2'],render_mode="webgl")
+fig.write_html(r'C:\Users\Brendan\Documents\Programming\Python Testing\robodata\source\webpage\TurningPoint.html',default_width='100%',default_height='100%')
 
 
 # Plotly graph object implementation attempts will be documented below this.
 ScatterTrace = go.Scatter()
+ViolinTrace = go.Violin()
 #Plotly figures are represented of trees where the root node has 3 top layer attributes: data, layout, and frames.
 
 SeasonGraphic = go.Figure([ScatterTrace,ViolinTrace])
