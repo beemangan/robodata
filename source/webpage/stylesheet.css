@@ -1,0 +1,7 @@
+body, html { 
+    overflow-y: hidden;
+    overflow-x: auto;
+}
+li {
+    display: inline;
+  }
