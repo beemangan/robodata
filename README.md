@@ -6,9 +6,9 @@ Projects here are poorly written, unoptimized, and should probably not be used b
 
 source - python script to create parquet files from SQL Queries
 
-mpldata - attempts to plot parquet data using matplotlib
+mpldata - attempts to plot parquet data using matplotlib (not visible)
 
 plotlydata - attempts to plot parquet data using plotly
 
-mrsmdata - Meerschaum testing
+mrsmdata - Meerschaum testing (future)
  
