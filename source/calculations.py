@@ -48,6 +48,10 @@ def DPR(data): # Returns a DPR dataframe for any given season, region, or event 
 #         pass
 # print(OPR(data))
 
-stats = pd.io.parquet.read_parquet(r'C:\Users\Brendan\Documents\Programming\Python Testing\robodata\source\parquet\stats.parquet',engine='pyarrow') # vrc.parquet is every season
+#stats = pd.io.parquet.read_parquet(r'C:\Users\Brendan\Documents\Programming\Python Testing\robodata\source\parquet\stats.parquet',engine='pyarrow') # vrc.parquet is every season
 
-print(stats[stats['team'] == '5139C']) # grab specific team # - seems like worlds data is wrong
+#print(stats[stats['team'] == '5139C']) # grab specific team # - seems like worlds data is wrong
+
+s = pd.io.parquet.read_parquet(r'/home/brendan/Documents/Programming/robodata/source/parquet/stats.parquet',engine='pyarrow')
+filtered_stats = s[s['season'] == 119]
+print(s[s['season'] == '92'])
