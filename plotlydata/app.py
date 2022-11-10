@@ -3,11 +3,13 @@ import pandas.io.parquet as pq
 import plotly.express as px
 import plotly.graph_objects as go
 import dash
-from dash import dcc, html, dash_table
+from dash import dcc, html, dash_table, Input, Output
 
-seasons = pd.io.parquet.read_parquet(r'/home/brendan/Documents/Programming/robodata/source/parquet/seasons.parquet',engine='pyarrow')
+seasons = pd.io.parquet.read_parquet(r'C:\Users\Brendan\Documents\Programming\Python Testing\robodata\source\parquet\seasons.parquet',engine='pyarrow')
 sdict = dict(zip(seasons.id,seasons.name)) ## Season Dictionary {id:name}
 
+events = pd.io.parquet.read_parquet(r'C:\Users\Brendan\Documents\Programming\Python Testing\robodata\source\parquet\events.parquet',engine='pyarrow')
+edict = dict(zip(events.sku,events.name)) ## Event Dictionary {sku:name}
 max = {
     "173" : "250",
     "154" : "350",
@@ -20,8 +22,8 @@ max = {
     "102" : "110",
     "92" : "110",   
 } 
-matches = pq.read_parquet(r'/home/brendan/Documents/Programming/robodata/source/parquet/vrc.parquet',engine='pyarrow')
-stats = pq.read_parquet(r'/home/brendan/Documents/Programming/robodata/source/parquet/stats.parquet',engine='pyarrow')
+matches = pq.read_parquet(r'C:\Users\Brendan\Documents\Programming\Python Testing\robodata\source\parquet\vrc.parquet',engine='pyarrow')
+stats = pq.read_parquet(r'C:\Users\Brendan\Documents\Programming\Python Testing\robodata\source\parquet\stats.parquet',engine='pyarrow')
 matches = matches.sort_values('region')
 matches = matches.sort_values('season',ascending=False)
 matches.dropna(0,subset=['red1','red2','region','blue1','blue2'],inplace=True)
@@ -29,41 +31,77 @@ matches.dropna(0,subset=['red1','red2','region','blue1','blue2'],inplace=True)
 app = dash.Dash()
 
 app.layout = html.Div([
-    html.H1("VRC Match Data"),
     html.Div([
-                dcc.Dropdown(
+        html.Div([
+                dcc.Dropdown( # Season Dropdown
                     id="season-dropdown", placeholder="Select a Season",
                     value = 173, # default is spin up
-                    options=[{"label": sdict[season], "value": int(season)} for season in matches.season.unique()]),
-                
-                dcc.Dropdown(
+                    options=[{"label": sdict[season], "value": int(season)} for season in matches.season.unique()])],
+                style={'width': '60%', 'display': 'inline-block', 'margin':'auto', 'border' : '1px solid black'}),
+        html.Div([        
+                dcc.Dropdown( # Region Dropdown
                     id="region-dropdown",
-                    placeholder="Select a Region",
-                    options=[{"label": region, "value": region} for region in matches.region.unique()]),
+                    placeholder="Select a Region")],
+                style={'width': '40%', 'display': 'inline-block', 'margin':'auto', 'border' : '1px solid black'}),
+        html.Div([
+                dcc.Dropdown( # Event Dropdown
+                    id="event-dropdown",
+                    placeholder="Select an Event")],
+                style={'width': '100%', 'display': 'inline-block', 'margin':'auto', 'border' : '1px solid black'}),
+    ],style={'display':'flex','flex-direction':'row','width':'50%','margin-bottom':'10px','margin-above':'10px','align-items':'center','justify-content':'center'}),
+        html.Div([
+                dcc.Tabs(id="tabs", value='matches', children=[
+                    dcc.Tab(label='Matches', value='matches'),
+                    dcc.Tab(label='Statistics', value='stats'),]),
+                html.Div(id='tabs-content')],
+                style={'width': '50%', 'display': 'flex', 'justify-content':'center','align-items':'center','flex-direction':'column', 'border' : '2px solid black'}),
+],style={'display':'flex','justify-content':'center','align-items':'center','flex-direction':'column'})
 
-                ],
-            style={"width": "15%", "display": "inline-block"},
-        ),
-    dcc.Tabs(id="tabs", value='matches', children=[
-        dcc.Tab(label='Matches', value='matches'),
-        dcc.Tab(label='Statistics', value='stats'),
-    ]),
-    html.Div(id='tabs-content')
-])
+# Setting up callbacks to populate the dropdown options to be dependent on each other 
+# I.e selecting a season populates region with all regions that have events for that season
+# and selecting a region populates the event dropdown with all events for that region for that season
+# Also set visibility of each dropdown (region becomes visible once season is selected etc)
 
 @app.callback(
-    dash.Output('tabs-content', 'children'),
-    dash.Input('tabs', 'value'),
-    dash.Input("season-dropdown", "value"),
-    dash.Input("region-dropdown", "value"),
+    Output('region-dropdown', 'options'),
+    Input('season-dropdown', 'value')
 )
-def render_content(tab,s,region):
-    filtered_matches = matches[matches.season == s]
-    filtered_stats = stats[stats.season == str(s)]
+def set_region_options(season): #Setting region dropdown options
+        return [{"label": region, "value": region} for region in matches[matches.season == season].region.unique()]
+
+@app.callback(
+    Output('event-dropdown', 'options'),
+    Input('region-dropdown', 'value'),
+    Input('season-dropdown', 'value')
+)
+def set_event_options(region,season): #Setting event dropdown options
+    return [{"label": edict[str(event)], "value": event} for event in matches[(matches.region == region) & (matches.season == season)].sku.unique()]
+
+@app.callback(
+    Output('tabs-content', 'children'),
+    Input('tabs', 'value'),
+    Input("season-dropdown", "value"),
+    Input("region-dropdown", "value"),
+    Input("event-dropdown", "value")
+)
+def render_content(tab,season,region,event):
+
+    filtered_matches = matches[matches.season == season]
+    fstats = stats[stats.season == str(season)]
+    fstats = fstats.drop(columns=['season'])
+
     if region:
         filtered_matches = filtered_matches[filtered_matches.region == region]
-        filtered_stats = filtered_stats[filtered_stats.region == region]
-    filtered_stats.sort_values('opr',inplace=True,ascending=False)
+        fstats = fstats[fstats.region == region]
+        fstats = fstats.drop(columns=['region'])
+
+    if event:
+        filtered_matches = filtered_matches[filtered_matches.sku == event]
+        fstats = fstats[fstats.sku == event]
+        fstats = fstats.drop(columns=['sku'])
+
+    fstats = fstats.sort_values('rank',ascending=True)
+    c = dict(zip([str(i) for i in fstats.columns],["Team","Region","Event", "Rank","W","L","T","WP","AP","SP","OPR","DPR","High","Avg","Total"]))
     if tab == 'matches':
         return html.Div([
             dcc.Graph(
@@ -71,123 +109,27 @@ def render_content(tab,s,region):
                     filtered_matches,
                     x="redscore",
                     y="bluescore",
+                    range_x=(-5,int(max[str(season)])),
+                    range_y=(-5,int(max[str(season)])),
                     color="sku",
                     hover_data=["red1","red2","blue1","blue2"],
                     title="Match Scores",
                     render_mode="webgl",
-                    width=900,
-                    height=898).update_layout(showlegend=False)
+                    width=820,
+                    height=820).update_layout(showlegend=False,xaxis={"title": "Red Score"},yaxis={"title":"Blue Scores"})
             )
         ])
     elif tab == 'stats':
         return html.Div([
             dash_table.DataTable(
                 id='table',
-                columns=[{"name": i, "id": i} for i in filtered_stats.columns],
-                data=filtered_stats.to_dict('records'),
+                columns=[{"name":c[i], "id": i} for i in fstats.columns],
+                data=fstats.to_dict('records'),
+                sort_action='native',
                 style_cell={'textAlign': 'left'},
+                virtualization=True,
             )
         ])
-
-
-
-
-
-# app.layout = html.Div(
-#     [   
-#         html.H1("VRC Match Data"),
-#         # Dropdown to filter season
-#         html.Div(
-#             [
-#                 dcc.Dropdown(
-#                     id="season-dropdown",
-#                     placeholder="Select a Season",
-#                     value = 173, # default is spin up
-#                     options=[{"label": sdict[season], "value": season} for season in matches.season.unique()], # Create available options from the dataset
-#                 ),
-#             ],
-#             style={"width": "15%", "display": "inline-block"},
-#         ),
-#         html.Div(
-#             [
-#                 dcc.Dropdown(
-#                     id="region-dropdown",
-#                     placeholder="Select a Region",
-#                     value = 'All', # default is spin up
-#                     options=[{"label": region, "value": region} for region in matches.region.unique()], # Create available options from the dataset
-#                 ),
-#             ],
-#             style={"width": "15%", "display": "inline-block"},
-#         ),
-#         html.Div(
-#             [
-#                 dcc.Tabs(
-#                     id="tabs",
-#                     value="match-scores",
-#                     children=[
-#                         dcc.Tab(label='Match Scores', value="match-scores",children=[dcc.Graph(id='match-scores',className ="chart")]),
-#                         dcc.Tab(label='Statistics', value='stats',children=[dcc.Graph(id='stats')]),
-#                     ]
-#                 ),
-#             ],
-#             style={"width": "15%", "display": "inline-block"},
-#         ),
-#         html.Div(id="tab-content"),
-        
-#     ]
-# )
-
-# @app.callback(
-#     dash.Output("match-scores", "figure"),
-#     dash.Input("season-dropdown", "value"),
-#     dash.Input("region-dropdown", "value"),
-# )
-# def update_figure(selected_season,selected_region):
-#     filtered_matches = matches[matches.season == selected_season]
-#     if selected_region:
-#         filtered_matches = filtered_matches[filtered_matches.region == selected_region]
-#     fig = px.scatter(
-#         filtered_matches, 
-#         x="redscore",
-#         y="bluescore",
-#         labels={"region": "Region"},
-#         hover_data=["red1","red2","blue1","blue2",'sku'],
-#         range_x=[-5,int(max[str(selected_season)])],
-#         range_y=[-5,int(max[str(selected_season)])],
-#         height=800,
-#         width=898,
-#         render_mode="webgl")
-#     return fig
-
-# @app.callback(
-#     dash.Output('tab-content', 'children'),
-#     dash.Input('tabs', 'value'))
-# def render_content(tab):
-#     if tab == 'match-scores':
-#         return html.Div([
-#             dcc.Graph(
-#                 id='match-scores'
-#             )
-#         ])
-#     elif tab == 'stats':
-#         return html.Div([
-#             dcc.Graph(
-#                 id='stats',
-#                 figure = go.Figure(
-#                     header = dict(
-#                         values = stats.columns,
-#                         align = "left"
-#                     ),
-#                     cells = dict(
-#                         values = stats.values,
-#                         align = "left"
-#                     )
-#                 )
-
-#             )
-#         ])
-
-
 if __name__ == '__main__':
     app.run_server(debug=True)
 
