@@ -5,10 +5,10 @@ import plotly.graph_objects as go
 import dash
 from dash import dcc, html, dash_table, Input, Output
 
-seasons = pd.io.parquet.read_parquet(r'C:\Users\Brendan\Documents\Programming\Python Testing\robodata\source\parquet\seasons.parquet',engine='pyarrow')
+seasons = pd.io.parquet.read_parquet(r'/home/brendan/Documents/Programming/robodata/source/parquet/seasons.parquet',engine='pyarrow')
 sdict = dict(zip(seasons.id,seasons.name)) ## Season Dictionary {id:name}
 
-events = pd.io.parquet.read_parquet(r'C:\Users\Brendan\Documents\Programming\Python Testing\robodata\source\parquet\events.parquet',engine='pyarrow')
+events = pd.io.parquet.read_parquet(r'/home/brendan/Documents/Programming/robodata/source/parquet/events.parquet',engine='pyarrow')
 edict = dict(zip(events.sku,events.name)) ## Event Dictionary {sku:name}
 max = {
     "173" : "250",
@@ -22,8 +22,8 @@ max = {
     "102" : "110",
     "92" : "110",   
 } 
-matches = pq.read_parquet(r'C:\Users\Brendan\Documents\Programming\Python Testing\robodata\source\parquet\vrc.parquet',engine='pyarrow')
-stats = pq.read_parquet(r'C:\Users\Brendan\Documents\Programming\Python Testing\robodata\source\parquet\stats.parquet',engine='pyarrow')
+matches = pq.read_parquet(r'/home/brendan/Documents/Programming/robodata/source/parquet/vrc.parquet',engine='pyarrow')
+stats = pq.read_parquet(r'/home/brendan/Documents/Programming/robodata/source/parquet/stats.parquet',engine='pyarrow')
 matches = matches.sort_values('region')
 matches = matches.sort_values('season',ascending=False)
 matches.dropna(0,subset=['red1','red2','region','blue1','blue2'],inplace=True)
@@ -54,7 +54,7 @@ app.layout = html.Div([
                     dcc.Tab(label='Matches', value='matches'),
                     dcc.Tab(label='Statistics', value='stats'),]),
                 html.Div(id='tabs-content')],
-                style={'width': '50%', 'display': 'flex', 'justify-content':'center','align-items':'center','flex-direction':'column', 'border' : '2px solid black'}),
+                style={'width': '50%', 'display': 'flex', 'justify-content':'center','align-items':'stretch','flex-direction':'column', 'border' : '2px solid black'}),
 ],style={'display':'flex','justify-content':'center','align-items':'center','flex-direction':'column'})
 
 # Setting up callbacks to populate the dropdown options to be dependent on each other 
@@ -115,10 +115,23 @@ def render_content(tab,season,region,event):
                     hover_data=["red1","red2","blue1","blue2"],
                     title="Match Scores",
                     render_mode="webgl",
-                    width=820,
-                    height=820).update_layout(showlegend=False,xaxis={"title": "Red Score"},yaxis={"title":"Blue Scores"})
+                    width=850,
+                    height=850).update_layout(
+                        title={
+                            'text': "Match Scores",
+                            'y':.95,
+                            'x':.5,
+                            'xanchor': 'center',
+                            'yanchor': 'top'},
+                        font=dict(
+                            family = "Courier New, monospace",
+                            size = 15,
+                            color = "black"),
+                        showlegend=False,
+                        xaxis={"title": ""},
+                        yaxis={"title": ""})
             )
-        ])
+        ],style={'display':'flex','flex-direction':'row','width':'100%','margin-bottom':'5px','margin-above':'5px','align-items':'center','justify-content':'center'})
     elif tab == 'stats':
         return html.Div([
             dash_table.DataTable(
